@@ -10,8 +10,6 @@ using namespace std;
 #define V2 18
 #define seed 5 //seed para hash - CAMBIAR PARA VER COMO CAMBIA TIEMPO Y PRECISION
 #define lim 4294967296 //2^32
-//#define N 512
-//#define bits_v2 8388607
 
 HyperLogLog::HyperLogLog(){
 	N=1<<V1; //2^V1
