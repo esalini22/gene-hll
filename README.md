@@ -1,5 +1,5 @@
 # HyperLogLog-cpp
-HyperLogLog en c++ para cálculo de similitud de genomas mediante índice de Jaccard. 
+HyperLogLog en C++ para cálculo de similitud de genomas mediante índice de Jaccard. 
 
 Recibe como entrada dos archivos de genomas, y devuelve:
 - Las cardinalidades de cada genoma
