@@ -24,6 +24,8 @@ Se ejecuta una vez, y se vuelve a compilar, reemplazando -fprofile-generate por 
 Se ejecuta como *./output_file genoma1 genoma2*
 
 ### Opciones
+- p: Cambia el valor de los p bits. Mínimo: 9, máximo: 31
+- k: Cambia el largo del kmer. Mínimo: 20, máximo: 31
 
 ## Comparación con Dashing
 Para k=31, y un error estimado de 0.07% y 0.05%, y analizando genomas de bacterias, se determinaron los siguientes errores absolutos y tiempos de ejecución:
