@@ -4,11 +4,7 @@
 using namespace std;
 typedef unsigned long long int ullint;
 
-/*#define BITS 0xFFFFFFFFFC
-#define bits_C 0x4000000000
-#define bits_G 0x8000000000
-#define bits_T 0xC000000000*/
-
+//funcion que imprime los kmers como strings con sus respectivas bases
 /*void to_kmer(unsigned long long int num,uint_fast8_t k){
 	unsigned long long int temp=num;
 	char kmer[k+1];
