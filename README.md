@@ -8,7 +8,7 @@ Recibe como entrada dos archivos de genomas, y devuelve:
 
 Hace uso de la función de hashing [wyhash32](https://github.com/wangyi-fudan/wyhash), pues se encontró que es la más rápida, sin afectar negativamente a los resultados.
 
-El algoritmo trata a los k-mers como cadenas de bits, donde cada base es representada por 2 bits, con A=00, C=01, G=10, T=11. Como el largo máximo del kmer es de 31, utiliza a lo más 62 bits, lo cual cabe en un long long.
+El algoritmo trata a los k-mers como cadenas de bits, donde cada base es representada por 2 bits, con A=00, C=01, G=10, T=11. Como el largo máximo del kmer es de 31, utiliza a lo más 62 bits, lo cual cabe en un long long (64 bits).
 
 
 ## Uso
