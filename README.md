@@ -1,7 +1,12 @@
 # HyperLogLog-cpp
-HyperLogLog en c++ para cálculo de distancia de genomas mediante índice de Jaccard.
+HyperLogLog en c++ para cálculo de similitud de genomas mediante índice de Jaccard. 
 
-Hace uso de la función de hashing wyhash32, pues se encontró que es la más rápida, sin afectar negativamente a los resultados.
+Recibe como entrada dos archivos de genomas, y devuelve:
+- Las cardinalidades de cada genoma
+- La cardinalidad de la unión
+- El índice de Jaccard
+
+Hace uso de la función de hashing [wyhash32](https://github.com/wangyi-fudan/wyhash), pues se encontró que es la más rápida, sin afectar negativamente a los resultados.
 
 El algoritmo trata a los k-mers como cadenas de bits, donde cada base es representada por 2 bits, con A=00, C=01, G=10, T=11. Como el largo máximo del kmer es de 31, utiliza a lo más 62 bits, lo cual cabe en un long long.
 
