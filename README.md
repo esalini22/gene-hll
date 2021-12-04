@@ -26,4 +26,4 @@ Se ejecuta como *./output_file genoma1 genoma2*
 ### Opciones
 
 ## Comparación con Dashing
-Para k=31, y un error estimado de 0.1% y 0.05%, se determinaron los siguientes errores absolutos y tiempos de ejecución:
+Para k=31, y un error estimado de 0.07% y 0.05%, se determinaron los siguientes errores absolutos y tiempos de ejecución:
