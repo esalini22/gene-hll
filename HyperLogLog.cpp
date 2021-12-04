@@ -4,35 +4,13 @@
 #include <cstdio>
 #include "wyhash32.h"
 
-//hashing con 64 bits es mas lento que con 32 bits
-/*
-Hashes probados:
-murmurhash32
-MurmurHash3_32
-XXH3
-XXH32
-XXH64
-wyhash
-wyhash32 -> alternativa mas rapida
-umash
-nmhash
-Spooky32 (Unexpected Behavior)
-farmhash32 (solo strings)
-*/
-
 using namespace std;
-#define seed 5 //seed para hash - CAMBIAR PARA VER COMO CAMBIA TIEMPO Y PRECISION
+#define seed 5 //seed para hash
 #define lim 4294967296 //2^32
 
 HyperLogLog::HyperLogLog(unsigned char n1, unsigned char n2){
 	p=n1;
 	b=n2;
-	/*wA.clear();
-	wB.clear();
-	wU.clear();*/
-	//wA.resize(b+1);
-	//wB.resize(b+1);
-	//wU.resize(b+1);
 	for(unsigned char i=0;i<b+1;++i){
 		wA.emplace_back(0);
 		wB.emplace_back(0);
@@ -42,10 +20,6 @@ HyperLogLog::HyperLogLog(unsigned char n1, unsigned char n2){
 	N=1<<p; //2^V1
 	a_m=(0.7213/(1+(1.079/N)))*N*N;
 	cerosA=cerosB=cerosU=N;
-	/*sketchA.clear();
-	sketchB.clear();*/
-	//sketchA.resize(N);
-	//sketchB.resize(N);
 	for(unsigned int i=0;i<N;++i){
 		sketchA.emplace_back(0);
 		sketchB.emplace_back(0);
@@ -57,7 +31,6 @@ void HyperLogLog::insertA(ullint kmer){
 	//calculamos el hash usando wyhash de 32 bits (hashing muy rapido)
 	const ullint *key = &kmer;
 	uint32_t hash=wyhash32(key,8,seed);
-	//uint32_t hash=XXH32(key,8,seed);
 
 	v1=hash>>b; //se desplaza el hash V2 bits a la derecha
 	v2=hash&bits_v2; // AND 2^V2 -1
@@ -71,7 +44,6 @@ void HyperLogLog::insertA(ullint kmer){
 void HyperLogLog::insertB(ullint kmer){
 	const ullint *key = &kmer;
 	uint32_t hash=wyhash32(key,8,seed);
-	//uint32_t hash=XXH32(key,8,seed);
 
 	v1=hash>>b;
 	v2=hash&bits_v2; // AND 2^V2 -1
@@ -111,39 +83,8 @@ void HyperLogLog::estJaccard(){
 		if(wB[i]) fractionB.first+=wB[i]*((ullint)1<<(maxB-i));
 		if(wU[i]) fractionU.first+=wU[i]*((ullint)1<<(maxU-i));
 	}
-	/*
-	//simplificamos
-	//solo en caso en que la multiplicacion del calculo de cardinalidades siguiente sea demasiado grande
-	ullint temp1=fractionA.first,temp2=fractionA.second,mcd;
-	mcd=(temp2>temp1) ? temp1:temp2;
-	while(mcd>0){
-		if(temp1%mcd==0 && temp2%mcd==0) break;
-		--mcd;
-	}
-	fractionA.first=fractionA.first/mcd;
-	fractionA.second=fractionA.second/mcd;
-
-	temp1=fractionB.first,temp2=fractionB.second,mcd;
-	mcd=(temp2>temp1) ? temp1:temp2;
-	while(mcd>0){
-		if(temp1%mcd==0 && temp2%mcd==0) break;
-		--mcd;
-	}
-	fractionB.first=fractionB.first/mcd;
-	fractionB.second=fractionB.second/mcd;
-
-	temp1=fractionU.first,temp2=fractionU.second,mcd;
-	mcd=(temp2>temp1) ? temp1:temp2;
-	while(mcd>0){
-		if(temp1%mcd==0 && temp2%mcd==0) break;
-		--mcd;
-	}
-	fractionU.first=fractionU.first/mcd;
-	fractionU.second=fractionU.second/mcd;*/
-
-	/*printf("ceros A:%u\n",cerosA);
-	printf("ceros B:%u\n",cerosB);
-	printf("ceros U:%u\n",cerosU);*/
+	
+	//estimamos las cardinalidades
 	long double cardA,cardB,cardU;
 	cardA=a_m*fractionA.second/fractionA.first; //media armonica
 	cardB=a_m*fractionB.second/fractionB.first;
