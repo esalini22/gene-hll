@@ -64,6 +64,10 @@ int main(int argc, char *argv[]){
 	//lee primer archivo
 	string linea;
 	ifstream indata(argv[1]);
+	if(!indata){
+		printf("No se pudo abrir el archivo %s\n",argv[1]);
+		exit(1);
+	}
 	getline(indata,linea); //salta primera linea
 	getline(indata,linea); //para primer kmer
 	string::iterator it=linea.begin();
@@ -115,6 +119,10 @@ int main(int argc, char *argv[]){
 	kmer=comp=0;
 
 	indata.open(argv[2]);
+	if(!indata){
+		printf("No se pudo abrir el archivo %s\n",argv[2]);
+		exit(1);
+	}
 	getline(indata,linea); //salta primera linea
 	getline(indata,linea); //para primer kmer
 	it=linea.begin();
