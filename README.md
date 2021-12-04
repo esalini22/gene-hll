@@ -22,4 +22,6 @@ Se ejecuta una vez, y se vuelve a compilar, reemplazando -fprofile-generate por 
 
 Se ejecuta como *./output_file genoma1 genoma2*
 
+### Opciones
+
 ## Comparación con Dashing
