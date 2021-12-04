@@ -31,22 +31,16 @@ int main(int argc, char *argv[]){
 	unsigned char k=31; //20 y 30
 	if(argc==5 || argc==6){ //1 opcion
 		char arg=atoi(argv[4]);
-		if(!strcmp(argv[3],"k") && arg<32 && arg>0){
-			printf("opcion k\n");
-			k=arg;
-		}
-		else if(!strcmp(argv[3],"p") && arg<32 && arg>0){
-			printf("opcion p\n");
-			p=arg;
-		}
+		if(!strcmp(argv[3],"k") && arg<32 && arg>19) k=arg;
+		else if(!strcmp(argv[3],"p") && arg<32 && arg>8) p=arg;
 	}
 	else if(argc>6){ //2 opciones
 		char arg1=atoi(argv[4]);
 		char arg2=atoi(argv[6]);
-		if(!strcmp(argv[3],"k") && arg1<32 && arg1>0) k=arg1;
-		else if(!strcmp(argv[3],"p") && arg1<32 && arg1>0) p=arg1;
-		if(!strcmp(argv[5],"k") && arg2<32 && arg2>0) k=arg2;
-		else if(!strcmp(argv[5],"p") && arg2<32 && arg2>0) p=arg2;
+		if(!strcmp(argv[3],"k") && arg1<32 && arg1>19) k=arg1;
+		else if(!strcmp(argv[3],"p") && arg1<32 && arg1>8) p=arg1;
+		if(!strcmp(argv[5],"k") && arg2<32 && arg2>19) k=arg2;
+		else if(!strcmp(argv[5],"p") && arg2<32 && arg2>8) p=arg2;
 	}
 	HyperLogLog *hll = new HyperLogLog(21,11);
 	char c;
