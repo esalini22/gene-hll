@@ -1,5 +1,6 @@
 # HyperLogLog-cpp
-Implementación del algoritmo HyperLogLog[^1] en C++ para cálculo de similitud de genomas mediante índice de Jaccard.
+Implementación del algoritmo HyperLogLog en C++ para cálculo de similitud de genomas mediante índice de Jaccard.
+El algoritmo se basa en el siguiente [paper](https://storage.googleapis.com/pub-tools-public-publication-data/pdf/40671.pdf).
 
 Recibe como entrada dos archivos de genomas, y devuelve:
 - Las cardinalidades de cada genoma
@@ -26,5 +27,3 @@ Se ejecuta como *./output_file genoma1 genoma2*
 
 ## Comparación con Dashing
 Para k=31, y un error estimado de 0.1% y 0.05%, se determinaron los siguientes errores absolutos y tiempos de ejecución:
-
-[^1] Heule, S., Nunkesser, M., & Hall, A. (2013, March). Hyperloglog in practice: Algorithmic engineering of a state of the art cardinality estimation algorithm. In Proceedings of the 16th International Conference on Extending Database Technology (pp. 683-692).
