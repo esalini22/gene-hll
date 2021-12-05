@@ -55,7 +55,6 @@ int main(int argc, char *argv[]){
 	const ullint BITS=(bits_C-1)<<2; 
 	
 	ullint kmer=0,comp=0;
-	ullint cardA,cardB,cardU;
 
 	//se lee linea por linea
 	//se la linea en memoria para ser leida caracter por caracter
