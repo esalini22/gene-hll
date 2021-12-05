@@ -44,11 +44,16 @@ int main(int argc, char *argv[]){
 	}
 	HyperLogLog *hll = new HyperLogLog(21,11);
 	char c;
+	//aca se determina como se insertaran las bases complementarias en el reverso del complemento del kmer
+	//es decir, se determina donde esta el inicio (en bits) de dicho kmer
 	const ullint desp=(2*(k-1));
-	const ullint bits_C=(ullint)1<<desp;
-	const ullint BITS=(bits_C-1)<<2;
 	const ullint bits_G=(ullint)2<<desp;
 	const ullint bits_T=(ullint)3<<desp;
+	const ullint bits_C=(ullint)1<<desp;
+	
+	//esto sirve para eliminar la primera base del kmer, luego de desplazar las bases a la izquierda para leer la nueva base
+	const ullint BITS=(bits_C-1)<<2; 
+	
 	ullint kmer=0,comp=0;
 	ullint cardA,cardB,cardU;
 
