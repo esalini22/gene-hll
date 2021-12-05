@@ -18,7 +18,7 @@ typedef unsigned long long int ullint;
 		temp=temp>>2;
 	}
 	printf("num: %llx\n",num);
-	cout<<"kmer:"<<kmer<<endl;
+	printf("kmer: %s\n",kmer);
 }*/
 
 int main(int argc, char *argv[]){
