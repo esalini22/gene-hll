@@ -44,7 +44,7 @@ int main(int argc, char *argv[]){
 	}
 	HyperLogLog *hll = new HyperLogLog(21,11);
 	char c;
-	//aca se determina como se insertaran las bases complementarias en el reverso del complemento del kmer
+	//aca se determina como se insertaran las bases complementarias en el complemento del reverso del kmer
 	//es decir, se determina donde esta el inicio (en bits) de dicho kmer
 	const ullint desp=(2*(k-1));
 	const ullint bits_G=(ullint)2<<desp;
