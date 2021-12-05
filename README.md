@@ -19,7 +19,7 @@ g++ -c main.cpp HyperLogLog.cpp -Ofast -fopt-info-vec -funroll-loops -frename-re
 
 g++ -o output_file main.o HyperLogLog.o -Ofast -fopt-info-vec -funroll-loops -frename-registers -fno-signed-zeros -fno-trapping-math -march=native -flto -fprofile-generate
 
-Se ejecuta una vez, y se vuelve a compilar, reemplazando -fprofile-generate por -fprofile-use
+Se ejecuta una vez, y se vuelve a compilar, reemplazando *-fprofile-generate* por *-fprofile-use*
 
 Se ejecuta como *./output_file genoma1 genoma2*
 
