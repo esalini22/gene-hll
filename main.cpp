@@ -7,7 +7,7 @@ using namespace std;
 typedef unsigned long long int ullint;
 
 HyperLogLog *hll;
-unsigned char k=31;
+unsigned char k=31; //largo de kmer
 ullint bits_G;
 ullint bits_T;
 ullint bits_C;
