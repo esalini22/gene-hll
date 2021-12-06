@@ -89,37 +89,16 @@ void HyperLogLog::estJaccard(){
 	cardA=a_m*fractionA.second/fractionA.first; //media armonica
 	cardB=a_m*fractionB.second/fractionB.first;
 	cardU=a_m*fractionU.second/fractionU.first;
-	if(cerosA && cardA<=5*N/2){ //C_HLL, ln cuando hay muchos ceros;
-		//printf("ceros A:%u\n",cerosA);
-		printf("linear counting\n");
-		cardA=N*log(N/cerosA);
-	}
-	else if(cardA>lim/30){
-		printf("valor muy grande\n");
-		cardA=-lim*log(1-(cardA/lim));
-	}
+	if(cerosA && cardA<=5*N/2) cardA=N*log(N/cerosA); //C_HLL, ln cuando hay muchos ceros;
+	else if(cardA>lim/30) cardA=-lim*log(1-(cardA/lim)); //cuando la estimacion es muy grande
 	printf("estimacion cardinalidad A: %Lf\n",cardA);
 
-	if(cerosB && cardB<=5*N/2){ //C_HLL, ln cuando hay muchos ceros;
-		//printf("ceros B:%u\n",cerosB);
-		printf("linear counting\n");
-		cardB=N*log(N/cerosB);
-	}
-	else if(cardB>lim/30){
-		printf("valor muy grande\n");
-		cardB=-lim*log(1-(cardB/lim));
-	}
+	if(cerosB && cardB<=5*N/2) cardB=N*log(N/cerosB);
+	else if(cardB>lim/30) cardB=-lim*log(1-(cardB/lim));
 	printf("estimacion cardinalidad B: %Lf\n",cardB);
 
-	if(cerosU && cardU<=5*N/2){ //C_HLL, ln cuando hay muchos ceros;
-		//printf("ceros A U B:%u\n",cerosU);
-		printf("linear counting\n");
-		cardU=N*log(N/cerosU);
-	}
-	else if(cardU>lim/30){
-		printf("valor muy grande\n");
-		cardU=-lim*log(1-(cardU/lim));
-	}
+	if(cerosU && cardU<=5*N/2) cardU=N*log(N/cerosU);
+	else if(cardU>lim/30) cardU=-lim*log(1-(cardU/lim));
 	printf("estimacion cardinalidad A U B: %Lf\n",cardU);
 
 	printf("estimacion jaccard: %Lf\n",(cardA+cardB-cardU)/cardU);
