@@ -15,9 +15,9 @@ El algoritmo trata a los k-mers como cadenas de bits, donde cada base es represe
 ## Uso
 Se compila de la siguiente forma:
 
-g++ -c main.cpp HyperLogLog.cpp -Ofast -fopt-info-vec -funroll-loops -frename-registers -fno-signed-zeros -fno-trapping-math -march=native -flto -fprofile-generate
+g++ -c main.cpp HyperLogLog.cpp -lm -pthread -Ofast -fopt-info-vec -funroll-loops -frename-registers -fno-signed-zeros -fno-trapping-math -march=native -flto -fopenmp -D_GLIBCXX_PARALLEL -fprofile-generate
 
-g++ -o output_file main.o HyperLogLog.o -Ofast -fopt-info-vec -funroll-loops -frename-registers -fno-signed-zeros -fno-trapping-math -march=native -flto -fprofile-generate
+g++ -o output_file main.cpp HyperLogLog.cpp -lm -pthread -Ofast -fopt-info-vec -funroll-loops -frename-registers -fno-signed-zeros -fno-trapping-math -march=native -flto -fopenmp -D_GLIBCXX_PARALLEL -fprofile-generate
 
 Se ejecuta una vez, y se vuelve a compilar, reemplazando *-fprofile-generate* por *-fprofile-use*
 
