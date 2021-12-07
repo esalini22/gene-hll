@@ -21,7 +21,7 @@ Se ejecuta una vez, y se vuelve a compilar, reemplazando *-fprofile-generate* po
 Se ejecuta como *./output_file genoma1 genoma2*
 
 ### Opciones
-- p: Cambia el valor de los p bits. Mínimo: 9, máximo: 31
+- p: Cambia el valor de los p bits. Mínimo: 7, máximo: 31
 - k: Cambia el largo del kmer. Mínimo: 20, máximo: 31
 
 Ejemplo:
