@@ -12,11 +12,9 @@ Hace uso de la función de hashing [wyhash32](https://github.com/wangyi-fudan/wy
 ## Uso
 Se compila de la siguiente forma:
 
-*g++ -c main.cpp HyperLogLog.cpp -lm -pthread -Ofast -fopt-info-vec -funroll-loops -frename-registers -fno-signed-zeros -fno-trapping-math -march=native -flto -fopenmp -D_GLIBCXX_PARALLEL -fprofile-generate -fprofile-correction*
+*g++ -c main.cpp HyperLogLog.cpp -lm -pthread -Ofast -fopt-info-vec -funroll-loops -frename-registers -fno-signed-zeros -fno-trapping-math -march=native -flto -fopenmp -D_GLIBCXX_PARALLEL -fprofile-use -fprofile-correction*
 
-*g++ -o output_file main.cpp HyperLogLog.cpp -lm -pthread -Ofast -fopt-info-vec -funroll-loops -frename-registers -fno-signed-zeros -fno-trapping-math -march=native -flto -fopenmp -D_GLIBCXX_PARALLEL -fprofile-generate -fprofile-correction*
-
-Se ejecuta una vez, y se vuelve a compilar, reemplazando *-fprofile-generate* por *-fprofile-use*
+*g++ -o output_file main.cpp HyperLogLog.cpp -lm -pthread -Ofast -fopt-info-vec -funroll-loops -frename-registers -fno-signed-zeros -fno-trapping-math -march=native -flto -fopenmp -D_GLIBCXX_PARALLEL -fprofile-use -fprofile-correction*
 
 Se ejecuta como *./output_file genoma1 genoma2*
 
