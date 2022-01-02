@@ -19,6 +19,8 @@ HyperLogLog::HyperLogLog(unsigned char n1, unsigned char n2){
 	N=1<<p; //2^V1
 	a_m=(0.7213/(1+(1.079/N)))*N*N;
 	cerosA=cerosB=cerosU=N;
+	for(unsigned char i=0;i<12;++i)
+		bit_mask.emplace_back(~((ullint)0x1F<<(5*i)));
 	for(unsigned int i=0;i<N/12;++i){ //cada celda tendra 12 buckets del sketch array
 		sketchA.emplace_back(0);
 		sketchB.emplace_back(0);
@@ -47,8 +49,7 @@ void HyperLogLog::insertA(ullint kmer){
 	ullint temp=(sketchA[indice]>>(5*bucket))&0x1F;
 	if(v2 > temp){
 		if(temp==0) --cerosA; //bucket ya no esta en 0
-		ullint bit_mask=(ullint)0x1F<<(5*bucket);
-		sketchA[indice]=(sketchA[indice]&(~bit_mask))|(v2<<(5*bucket));
+		sketchA[indice]=(sketchA[indice]&(bit_mask[bucket]))|(v2<<(5*bucket));
 	}
 }
 void HyperLogLog::insertB(ullint kmer){
@@ -66,8 +67,7 @@ void HyperLogLog::insertB(ullint kmer){
 
 	if(v2 > temp){ //se queda con mayor valor
 		if(temp==0) --cerosB; //bucket ya no esta en 0
-		ullint bit_mask=(ullint)0x1F<<(5*bucket);
-		sketchB[indice]=(sketchB[indice]&(~bit_mask))|(v2<<(5*bucket));
+		sketchB[indice]=(sketchB[indice]&(bit_mask[bucket]))|(v2<<(5*bucket));
 	}
 }
 void HyperLogLog::estJaccard(){
