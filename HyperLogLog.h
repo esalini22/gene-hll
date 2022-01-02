@@ -10,7 +10,7 @@ class HyperLogLog{
         long double N; //corresponde a |M|: numero de buckets - se usa long double para evitar hacer casting al calcular cardinalidad
         long double a_m; //factor de correccion * N^2
         unsigned int cerosA,cerosB,cerosU;
-        vector<ullint> sketchA,sketchB; //se usa char pues numero más grande que puede almacenenar es 31, que usa 5 bits (1 byte = 8 bits)
+        vector<ullint> sketchA,sketchB; //se usa vector de ullint, cada celda (64 bits) a su vez tiene hasta 12 buckets
         vector<unsigned int> wA,wB,wU; //vectores de contadores de w (elementos en sketches)
     public:
         HyperLogLog(unsigned char n1,unsigned char n2);
