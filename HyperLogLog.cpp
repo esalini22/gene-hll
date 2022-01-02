@@ -1,6 +1,5 @@
 #include "HyperLogLog.h"
 #include <cmath>
-#include <bitset>
 #include <cstdio>
 #include "wyhash32.h"
 
