@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include <fstream>
 #include <unistd.h>
 #include <pthread.h>
