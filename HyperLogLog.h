@@ -1,7 +1,6 @@
 #ifndef HYPERLOGLOG_H
 #define HYPERLOGLOG_H
 #include <vector>
-#include <cstring>
 typedef unsigned long long int ullint;
 using namespace std;
 class HyperLogLog{
