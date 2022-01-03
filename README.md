@@ -10,13 +10,9 @@ Recibe como entrada dos archivos de genomas, y devuelve:
 Hace uso de la función de hashing [wyhash32](https://github.com/wangyi-fudan/wyhash), pues se encontró que es la más rápida, sin afectar negativamente a los resultados.
 
 ## Uso
-Se compila de la siguiente forma:
+Se compila usando make:
 
-*g++ -c main.cpp HyperLogLog.cpp -lm -pthread -Ofast -fopt-info-vec -funroll-loops -frename-registers -fno-signed-zeros -fno-trapping-math -march=native -flto -fopenmp -D_GLIBCXX_PARALLEL -fprofile-use -fprofile-correction*
-
-*g++ -o output_file main.cpp HyperLogLog.cpp -lm -pthread -Ofast -fopt-info-vec -funroll-loops -frename-registers -fno-signed-zeros -fno-trapping-math -march=native -flto -fopenmp -D_GLIBCXX_PARALLEL -fprofile-use -fprofile-correction*
-
-Se ejecuta como *./output_file genoma1 genoma2*
+Se ejecuta como *./hll genoma1 genoma2*
 
 ### Opciones
 - p: Cambia el valor de los p bits. Mínimo: 7, máximo: 31
@@ -24,4 +20,4 @@ Se ejecuta como *./output_file genoma1 genoma2*
 
 Ejemplo:
 
-*./output_file genoma1 genoma2 k 20 p 14*
+*./hll genoma1 genoma2 k 20 p 14*
