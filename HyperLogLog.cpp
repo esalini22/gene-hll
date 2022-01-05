@@ -71,11 +71,11 @@ void HyperLogLog::insertB(ullint kmer){
 	}
 }
 void HyperLogLog::estJaccard(){
-	long double cardA=0,cardB=0,cardU=0;
 	vector<ullint>::iterator it1=sketchA.begin();
 	vector<ullint>::iterator it2=sketchB.begin();
 	vector<ullint>::iterator fin=sketchA.end();
-	while(it1!=fin){
+	//contamos las repeticiones de w en cada sketch
+	while(it1!=fin-1){ 
 		ullint i1=*it1,i2=*it2;
 		for(char i=0;i<12;++i){ //12 registros por celda
 			ullint temp1=i1&0x1F,temp2=i2&0x1F;
@@ -89,6 +89,23 @@ void HyperLogLog::estJaccard(){
 		++it1;
 		++it2; //avanza en tabla B
 	}
+	unsigned char tam=(long)N%12;
+	ullint i1=*it1,i2=*it2;
+	for(char i=0;i<tam;++i){ //12 registros por celda
+		ullint temp1=i1&0x1F,temp2=i2&0x1F;
+		wA[temp1]++;
+		wB[temp2]++;
+		if(temp1||temp2) --cerosU;
+		(temp1>temp2) ? wU[temp1]++ : wU[temp2]++;
+		i1=i1>>5;
+		i2=i2>>5;
+	}
+	//eliminamos las repeticiones por celda extra vacía creada (?)
+	wA[0]-=12;
+	wB[0]-=12;
+	wU[0]-=12;
+	
+	long double cardA=0,cardB=0,cardU=0;
 	for(unsigned char i=0;i<b+2;++i){
 		if(wA[i]) cardA+=(long double)wA[i]/(long double)(1<<i);
 		if(wB[i]) cardB+=(long double)wB[i]/(long double)(1<<i);
