@@ -96,8 +96,8 @@ void HyperLogLog::estJaccard(){
 	}
 	//media armonica
 	cardA=(long double)a_m/cardA;
-	cardB=(long double)a_m/cardA;
-	cardU=(long double)a_m/cardA;
+	cardB=(long double)a_m/cardB;
+	cardU=(long double)a_m/cardU;
 	if(cerosA && cardA<=5*N/2){ //C_HLL, ln cuando hay muchos ceros;
 		//printf("ceros A:%u\n",cerosA);
 		printf("linear counting\n");
