@@ -10,7 +10,7 @@ using namespace std;
 HyperLogLog::HyperLogLog(unsigned char n1, unsigned char n2){
 	p=n1;
 	b=n2;
-	for(unsigned char i=0;i<b+2;++i){ //es b+2 en vez de b+1, pues v2 podria ser 0 (PREGUNTAR)
+	for(unsigned char i=0;i<b+2;++i){ //es b+2 en vez de b+1, pues v2 podria ser 0
 		wA.emplace_back(0);
 		wB.emplace_back(0);
 		wU.emplace_back(0);
@@ -37,8 +37,8 @@ void HyperLogLog::insertA(ullint kmer){
 	const ullint *key = &kmer;
 	uint32_t hash=wyhash32(key,8,seed);
 
-	unsigned int v1=hash>>b; //se desplaza el hash V2 bits a la derecha
-	ullint v2=hash&bits_v2; // AND 2^V2 -1
+	unsigned int v1=hash>>b; //se desplaza el hash b bits a la derecha
+	ullint v2=hash&bits_v2; // AND 2^b -1
 	if(v2==0) v2=b+1;
 	else v2=__builtin_clz(v2)+1-p; //cuenta cantidad de bits 0 mas significativo
 	//lo cual sirve para encontrar posicion de 1 mas a la izquierda
@@ -57,7 +57,7 @@ void HyperLogLog::insertB(ullint kmer){
 	uint32_t hash=wyhash32(key,8,seed);
 
 	unsigned int v1=hash>>b;
-	ullint v2=hash&bits_v2; // AND 2^V2 -1
+	ullint v2=hash&bits_v2; // AND 2^b -1
 	if(v2==0) v2=b+1;
 	else v2=__builtin_clz(v2)+1-p; //posicion de primer 1, de izq a der
 
