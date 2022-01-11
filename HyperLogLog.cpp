@@ -15,7 +15,7 @@ HyperLogLog::HyperLogLog(unsigned char n1, unsigned char n2){
 		wB.emplace_back(0);
 		wU.emplace_back(0);
 	}
-	bits_v2=(1<<b)-1; //2^V2 -1
+	bits_v2=(1<<b)-1; //2^b -1
 	N=1<<p; //2^V1
 	a_m=(0.7213/(1+(1.079/N)))*N*N;
 	cerosA=cerosB=cerosU=N;
