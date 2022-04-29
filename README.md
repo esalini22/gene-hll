@@ -1,4 +1,4 @@
-# HyperLogLog-cpp
+# gene-hll
 Implementación del algoritmo HyperLogLog en C++ para cálculo de similitud de genomas mediante índice de Jaccard.
 El algoritmo se basa en el siguiente [paper](https://storage.googleapis.com/pub-tools-public-publication-data/pdf/40671.pdf).
 
