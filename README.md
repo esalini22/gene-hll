@@ -10,7 +10,7 @@ Recibe como entrada dos archivos de genomas, y devuelve:
 Hace uso de la función de hashing [wyhash32](https://github.com/wangyi-fudan/wyhash), pues se encontró que es la más rápida, sin afectar negativamente a los resultados.
 
 ## Uso
-Se compila usando make:
+Se compila usando make
 
 Se ejecuta como *./hll genoma1 genoma2*
 
