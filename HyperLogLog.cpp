@@ -1,38 +1,41 @@
 #include "HyperLogLog.h"
 #include <cmath>
 #include <cstdio>
+#include <fstream>
+#include <omp.h>
 #include "wyhash32.h"
 
 using namespace std;
-#define seed 5
+#define seed 5 //seed para hash
 #define lim 4294967296 //2^32
 
-HyperLogLog::HyperLogLog(unsigned char n1, unsigned char n2){
+HyperLogLog::HyperLogLog(unsigned char n1, unsigned char n2,unsigned char k,int numThreads, int n){
+	omp_set_num_threads(numThreads);
 	p=n1;
 	b=n2;
-	for(unsigned char i=0;i<b+2;++i){ //es b+2 en vez de b+1, pues v2 podria ser 0
-		wA.emplace_back(0);
-		wB.emplace_back(0);
-		wU.emplace_back(0);
-	}
 	bits_v2=(1<<b)-1; //2^b -1
 	N=1<<p; //2^V1
 	a_m=(0.7213/(1+(1.079/N)))*N*N;
-	cerosA=cerosB=cerosU=N;
 	for(unsigned char i=0;i<12;++i)
 		bit_mask.emplace_back(~((ullint)0x1F<<(5*i)));
-	for(unsigned int i=0;i<N/12;++i){ //cada celda tendra 12 buckets del sketch array
-		sketchA.emplace_back(0);
-		sketchB.emplace_back(0);
-	}
-	if((long)N%12){
-		sketchA.emplace_back(0);
-		sketchB.emplace_back(0);
-	}
+	cards.resize(n);
+	sketch.resize(n);
+	names.resize(n);
+	kmer_length=to_string((int)k);
+	sketch_size=to_string(p);
 }
 HyperLogLog::~HyperLogLog(){}
 
-void HyperLogLog::insertA(ullint kmer){
+void HyperLogLog::addSketch(string genome,int i){
+	//inicializa sketch en 0s, y añade su nombre a un vector
+	for(unsigned int j=0;j<N/12;++j) //cada celda tendra 12 buckets del sketch array
+		sketch[i].emplace_back(0);
+	if((long)N%12)
+		sketch[i].emplace_back(0);
+	names[i]=genome;
+}
+
+void HyperLogLog::insert(ullint kmer,int i){
 	//calculamos el hash usando wyhash de 32 bits (hashing muy rapido)
 	const ullint *key = &kmer;
 	uint32_t hash=wyhash32(key,8,seed);
@@ -46,107 +49,146 @@ void HyperLogLog::insertA(ullint kmer){
 	//y siempre habran al menos p ceros a la izquierda
 	unsigned int indice=v1/12; //indice de celda
 	unsigned char bucket=v1%12; //12 buckets por celda
-	ullint temp=(sketchA[indice]>>(5*bucket))&0x1F;
-	if(v2 > temp){
-		if(temp==0) --cerosA; //bucket ya no esta en 0
-		sketchA[indice]=(sketchA[indice]&(bit_mask[bucket]))|(v2<<(5*bucket));
+	ullint temp=(sketch[i][indice]>>(5*bucket))&0x1F;
+	if(v2 > temp) sketch[i][indice]=(sketch[i][indice]&(bit_mask[bucket]))|(v2<<(5*bucket));
+}
+
+void HyperLogLog::loadSketch(char *filename){ //¿que pasa si tamaño del sketch es distinto al de argumento?
+	/*FILE *fp = fopen(filename,"r");
+	string genome=filename; //se debe determinar nombre del genoma a partir del archivo .hll
+	genome.erase(genome.find(".w."),string::npos);
+	vector<ullint> sketch;
+	unsigned int ceros=N;
+	while(!feof(fp)){
+		ullint celda;
+		int ret=fscanf(fp,"%llu",&celda);
+		sketch.emplace_back(celda);
+	}
+	fclose(fp);
+	sketches.push_back(pair<string,vector<ullint>>(genome,sketch));*/
+}
+
+void HyperLogLog::saveSketches(){
+	int tam=sketch.size();
+	#pragma omp parallel for
+	for(int i=0;i<tam;++i){
+		vector<ullint> s=sketch[i];
+		string temp=names[i];
+		temp+=".w."+kmer_length+".spacing."+sketch_size+".hll";
+		char* filename=(char*)temp.c_str();
+		FILE *fp = fopen(filename,"w");
+		for(vector<ullint>::iterator it=s.begin();it!=s.end();it++)
+			fprintf(fp,"%llu\n",*it);
+		fclose(fp);
 	}
 }
-void HyperLogLog::insertB(ullint kmer){
-	const ullint *key = &kmer;
-	uint32_t hash=wyhash32(key,8,seed);
 
-	unsigned int v1=hash>>b;
-	ullint v2=hash&bits_v2; // AND 2^b -1
-	if(v2==0) v2=b+1;
-	else v2=__builtin_clz(v2)+1-p; //posicion de primer 1, de izq a der
-
-	unsigned int indice=v1/12;
-	unsigned char bucket=v1%12;
-	ullint temp=(sketchB[indice]>>(5*bucket))&0x1F;
-
-	if(v2 > temp){ //se queda con mayor valor
-		if(temp==0) --cerosB; //bucket ya no esta en 0
-		sketchB[indice]=(sketchB[indice]&(bit_mask[bucket]))|(v2<<(5*bucket));
-	}
-}
-void HyperLogLog::estJaccard(){
-	vector<ullint>::iterator it1=sketchA.begin();
-	vector<ullint>::iterator it2=sketchB.begin();
-	vector<ullint>::iterator fin=sketchA.end();
-	//contamos las repeticiones de w en cada sketch
-	while(it1!=fin-1){ 
-		ullint i1=*it1,i2=*it2;
-		for(char i=0;i<12;++i){ //12 registros por celda
-			ullint temp1=i1&0x1F,temp2=i2&0x1F;
-			wA[temp1]++;
-			wB[temp2]++;
-			if(temp1||temp2) --cerosU;
-			(temp1>temp2) ? wU[temp1]++ : wU[temp2]++;
-			i1=i1>>5;
-			i2=i2>>5;
+void HyperLogLog::estCard(){
+	int tam=sketch.size();
+	#pragma omp parallel for
+	for (int j = 0; j < tam; ++j){
+		int ceros=N;
+		vector<unsigned int> w;
+		for(unsigned char i=0;i<b+2;++i)
+			w.emplace_back(0);
+		vector<ullint>::iterator it1=sketch[j].begin();
+		vector<ullint>::iterator fin=sketch[j].end();
+		//contamos las repeticiones de w en cada sketch
+		while(it1!=fin-1){ 
+			ullint i1=*it1;
+			for(char i=0;i<12;++i){ //12 registros por celda
+				ullint temp1=i1&0x1F;
+				if(temp1) ceros--;
+				w[temp1]++;
+				i1=i1>>5;
+			}
+			++it1;
 		}
-		++it1;
-		++it2; //avanza en tabla B
+		unsigned char tam=(long)N%12;
+		ullint i1=*it1;
+		for(char i=0;i<tam;++i){ //12 registros por celda
+			ullint temp1=i1&0x1F;
+			w[temp1]++;
+			i1=i1>>5;
+		}
+		//eliminamos las repeticiones por celda extra vacía creada (?)
+		w[0]-=12;
+		long double card=0;
+		for(unsigned char i=0;i<b+2;++i)
+			if(w[i]) card+=(long double)w[i]/(long double)(1<<i);
+		//media armonica
+		card=(long double)a_m/card;
+		if(ceros && card<=5*N/2){ //C_HLL, ln cuando hay muchos ceros;
+			//printf("ceros A:%u\n",cerosA);
+			printf("linear counting\n");
+			card=N*log(N/ceros);
+		}
+		else if(card>lim/30){
+			printf("valor muy grande\n");
+			card=-lim*log(1-(card/lim));
+		}
+		printf("estimacion cardinalidad %s: %Lf\n",names[j].c_str(),card);
+		cards[j]=card;
 	}
-	unsigned char tam=(long)N%12;
-	ullint i1=*it1,i2=*it2;
-	for(char i=0;i<tam;++i){ //12 registros por celda
-		ullint temp1=i1&0x1F,temp2=i2&0x1F;
-		wA[temp1]++;
-		wB[temp2]++;
-		if(temp1||temp2) --cerosU;
-		(temp1>temp2) ? wU[temp1]++ : wU[temp2]++;
-		i1=i1>>5;
-		i2=i2>>5;
-	}
-	//eliminamos las repeticiones por celda extra vacía creada (?)
-	wA[0]-=12;
-	wB[0]-=12;
-	wU[0]-=12;
-	
-	long double cardA=0,cardB=0,cardU=0;
-	for(unsigned char i=0;i<b+2;++i){
-		if(wA[i]) cardA+=(long double)wA[i]/(long double)(1<<i);
-		if(wB[i]) cardB+=(long double)wB[i]/(long double)(1<<i);
-		if(wU[i]) cardU+=(long double)wU[i]/(long double)(1<<i);
-	}
-	//media armonica
-	cardA=(long double)a_m/cardA;
-	cardB=(long double)a_m/cardB;
-	cardU=(long double)a_m/cardU;
-	if(cerosA && cardA<=5*N/2){ //C_HLL, ln cuando hay muchos ceros;
-		//printf("ceros A:%u\n",cerosA);
-		printf("linear counting\n");
-		cardA=N*log(N/cerosA);
-	}
-	else if(cardA>lim/30){
-		printf("valor muy grande\n");
-		cardA=-lim*log(1-(cardA/lim));
-	}
-	printf("estimacion cardinalidad A: %Lf\n",cardA);
+}
 
-	if(cerosB && cardB<=5*N/2){ //C_HLL, ln cuando hay muchos ceros;
-		//printf("ceros B:%u\n",cerosB);
-		printf("linear counting\n");
-		cardB=N*log(N/cerosB);
-	}
-	else if(cardB>lim/30){
-		printf("valor muy grande\n");
-		cardB=-lim*log(1-(cardB/lim));
-	}
-	printf("estimacion cardinalidad B: %Lf\n",cardB);
+void HyperLogLog::estJaccard(){ //recibe numero de genomas
+	int tam=sketch.size();
+	#pragma omp parallel for //no se puede usar collapse aqui
+	for(int j1=0;j1<tam;j1++){
+		for(int j2=j1+1;j2<tam;j2++){
+			vector<ullint>::iterator it1=sketch[j1].begin();
+			vector<ullint>::iterator it2=sketch[j2].begin();
+			vector<ullint>::iterator fin=sketch[j1].end();
+			int ceros=N;
+			vector<unsigned int> wU;
+			for(unsigned char i=0;i<b+2;++i)
+				wU.emplace_back(0);
+			//contamos las repeticiones de w en cada sketch
+			while(it1!=fin-1){ 
+				ullint i1=*it1,i2=*it2;
+				for(char i=0;i<12;++i){ //12 registros por celda
+					ullint temp1=i1&0x1F,temp2=i2&0x1F;
+					if(temp1||temp2) --ceros;
+					(temp1>temp2) ? wU[temp1]++ : wU[temp2]++;
+					i1=i1>>5;
+					i2=i2>>5;
+				}
+				++it1;
+				++it2; //avanza en tabla B
+			}
+			unsigned char tam=(long)N%12;
+			ullint i1=*it1,i2=*it2;
+			for(char i=0;i<tam;++i){ //12 registros por celda
+				ullint temp1=i1&0x1F,temp2=i2&0x1F;
+				if(temp1||temp2) --ceros;
+				(temp1>temp2) ? wU[temp1]++ : wU[temp2]++;
+				i1=i1>>5;
+				i2=i2>>5;
+			}
+			//eliminamos las repeticiones por celda extra vacía creada (?)
+			wU[0]-=12;
+			
+			long double cardU=0;
+			for(unsigned char i=0;i<b+2;++i){
+				if(wU[i]) cardU+=(long double)wU[i]/(long double)(1<<i);
+			}
+			//media armonica
+			cardU=(long double)a_m/cardU;
+			if(ceros && cardU<=5*N/2){ //C_HLL, ln cuando hay muchos ceros;
+				//printf("ceros A U B:%u\n",cerosU);
+				printf("linear counting\n");
+				cardU=N*log(N/ceros);
+			}
+			else if(cardU>lim/30){
+				printf("valor muy grande\n");
+				cardU=-lim*log(1-(cardU/lim));
+			}
+			//printf("estimacion cardinalidad %s U %s: %Lf\n",names[j1].c_str(),names[j2].c_str(),cardU);
 
-	if(cerosU && cardU<=5*N/2){ //C_HLL, ln cuando hay muchos ceros;
-		//printf("ceros A U B:%u\n",cerosU);
-		printf("linear counting\n");
-		cardU=N*log(N/cerosU);
+			long double jaccard=(cards[j1]+cards[j2]-cardU)/cardU;
+			if(jaccard<0) jaccard=0;
+			printf("estimacion jaccard %s U %s: %Lf\n",names[j1].c_str(),names[j2].c_str(),jaccard);
+		}
 	}
-	else if(cardU>lim/30){
-		printf("valor muy grande\n");
-		cardU=-lim*log(1-(cardU/lim));
-	}
-	printf("estimacion cardinalidad A U B: %Lf\n",cardU);
-
-	printf("estimacion jaccard: %Lf\n",(cardA+cardB-cardU)/cardU);
 }
