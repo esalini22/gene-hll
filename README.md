@@ -14,11 +14,11 @@ Se compila usando make
 Se ejecuta como *./hll -opcion valor genomas*, o bien *./hll genomas -opcion valor*
 
 ### Opciones
-- -p: Cambia el valor de los p bits. Mínimo: 7, máximo: 31
-- -k: Cambia el largo del kmer. Mínimo: 20, máximo: 31
-- -f: Lee las rutas de los archivos de genomas desde un archivo de texto.
+- -p: Cambia el valor de los p bits. Mínimo: 7, máximo: 31. Por defecto es 22.
+- -k: Cambia el largo del kmer. Mínimo: 20, máximo: 31.  Por defecto es 31.
+- -f: Lee las rutas de los archivos de genomas desde un archivo de texto (1 ruta por linea).
 - -s: Guarda los sketches generados en un archivo de texto.
-- -t: Número de hebras
+- -t: Número de hebras  Por defecto es el mínimo entre el tamaño del input y la cantidad total máxima de hebras por CPU.
 
 Ejemplo:
 
