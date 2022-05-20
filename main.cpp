@@ -167,6 +167,10 @@ int main(int argc, char *argv[]){
 	
 
 	int numThreads=min(tam,(int)std::thread::hardware_concurrency());
+
+	option=std::find((char**)argv,end,(const std::string&)"-t"); //guarda los sketches
+	if(option!=end) numThreads=atoi(*(option+1));
+
 	printf("threads: %d\n",numThreads);
 	hll = new HyperLogLog(p,32-p,k,numThreads,tam);
 
