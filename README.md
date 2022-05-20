@@ -18,6 +18,7 @@ Se ejecuta como *./hll -opcion valor genomas*, o bien *./hll genomas -opcion val
 - -k: Cambia el largo del kmer. Mínimo: 20, máximo: 31
 - -f: Lee las rutas de los archivos de genomas desde un archivo de texto.
 - -s: Guarda los sketches generados en un archivo de texto.
+- -t: Número de hebras
 
 Ejemplo:
 
