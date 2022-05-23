@@ -1,4 +1,4 @@
-include <stdio.h>
+#include <stdio.h>
 #include <string.h>
 #include <string>
 #include <fstream>
@@ -45,7 +45,7 @@ void leer(char *genome,int i){
 		exit(1);
 	}
 
-	/*vector<ullint>::iterator sketch=*/hll->addSketch(genome,i); //añade el sketch inicializado con 0s
+	hll->addSketch(genome,i); //añade el sketch inicializado con 0s
 
 	getline(indata,linea); //salta primera linea
 	getline(indata,linea); //para primer kmer
@@ -106,7 +106,6 @@ void leer(char *genome,int i){
 //genoma2
 //etc. (1 genoma por linea)
 vector<string> readFromFile(char* paths){
-	//printf("archivo: %s\n",paths);
 	ifstream indata(paths);
 	if(!indata){
 		printf("No se pudo abrir el archivo %s\n",paths);
