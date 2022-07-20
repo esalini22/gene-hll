@@ -127,7 +127,7 @@ vector<string> getPaths(char** argv, int argc){
 	vector<string> genomes;
 	for(int i=1;i<argc;++i){
 		if(!strcmp(argv[i],"-k") || !strcmp(argv[i],"-p")) ++i;
-		else if(!strcmp(argv[i],"-s")) genomes.push_back(argv[i]);
+		else if(strcmp(argv[i],"-s")) genomes.push_back(argv[i]);
 	}
 	return genomes;
 }
