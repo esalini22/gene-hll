@@ -115,9 +115,8 @@ vector<string> readFromFile(char* paths){
 	string filename;
 	while(!indata.eof()){
 		getline(indata,filename);
-		genomes.push_back(filename);
+		if(filename!="") genomes.push_back(filename);
 	}
-	if(genomes.back()=="") genomes.pop_back(); //elimina el EOF
 	indata.close();
 	return genomes;
 }
@@ -126,7 +125,35 @@ vector<string> readFromFile(char* paths){
 vector<string> getPaths(char** argv, int argc){
 	vector<string> genomes;
 	for(int i=1;i<argc;++i){
-		if(!strcmp(argv[i],"-k") || !strcmp(argv[i],"-p")) ++i;
+		printf("%s\n",argv[i]);
+		if(!strcmp(argv[i],"-k") || !strcmp(argv[i],"-p") || !strcmp(argv[i],"-t") || !strcmp(argv[i],"-o") || !strcmp(argv[i],"-d") || !strcmp(argv[i],"-r")) ++i;
+		else if(strcmp(argv[i],"-s")) genomes.push_back(argv[i]);
+	}
+	return genomes;
+}
+
+vector<string> readCompressedFromFile(char* paths){
+	ifstream indata(paths);
+	if(!indata){
+		printf("No se pudo abrir el archivo %s\n",paths);
+		exit(1);
+	}
+	vector<string> genomes;
+	string filename;
+	while(!indata.eof()){
+		getline(indata,filename);
+		if(filename!="") genomes.push_back(filename);
+	}
+	indata.close();
+	return genomes;
+}
+
+//obtiene archivos de la linea de argumentos
+vector<string> getCompressed(char** argv, int argc){
+	vector<string> genomes;
+	for(int i=1;i<argc;++i){
+		printf("%s\n",argv[i]);
+		if(!strcmp(argv[i],"-k") || !strcmp(argv[i],"-p") || !strcmp(argv[i],"-t") || !strcmp(argv[i],"-o") || !strcmp(argv[i],"-f") || !strcmp(argv[i],"-r")) ++i;
 		else if(strcmp(argv[i],"-s")) genomes.push_back(argv[i]);
 	}
 	return genomes;
@@ -137,7 +164,7 @@ vector<string> getPaths(char** argv, int argc){
 //no detecta caso en que se introduza opcion o valor invalido
 int main(int argc, char *argv[]){
 	if(argc<3) {
-		printf("No hay suficientes argumentos");
+		printf("No hay suficientes argumentos\n");
 		exit(1);
 	}
 	unsigned char p=22;
@@ -153,11 +180,17 @@ int main(int argc, char *argv[]){
 		char val=atoi(*(option+1));
 		if(val<32 && val>8) p=val;
 	}
-	vector<string> genomes;
+	vector<string> genomes,compressed;
 	option=std::find((char**)argv,end,(const std::string&)"-f"); //lee de txt
 	if(option!=end) genomes=readFromFile(*(option+1));
 	else genomes=getPaths(argv,argc);
-	int tam=genomes.size();
+
+	option=std::find((char**)argv,end,(const std::string&)"-r"); //lee de txt
+	if(option!=end) compressed=readCompressedFromFile(*(option+1));
+	else compressed=getCompressed(argv,argc);
+
+	int tam=genomes.size(),tam2=compressed.size();
+	printf("tam: %d, tam2: %d\n",tam,tam2);
 
 	for(vector<string>::iterator it=genomes.begin();it!=genomes.end();++it)
 		printf("%s ",(char*)(*it).c_str());
@@ -165,13 +198,14 @@ int main(int argc, char *argv[]){
 	printf("\nk: %d p: %d\n",k,p);
 	
 
-	int numThreads=min(tam,(int)std::thread::hardware_concurrency());
+	int numThreads=min(tam+tam2,(int)std::thread::hardware_concurrency());
+	printf("numThreads: %d, tam: %d, maxThreads: %d\n",numThreads,tam+tam2,(int)std::thread::hardware_concurrency());
 
-	option=std::find((char**)argv,end,(const std::string&)"-t"); //guarda los sketches
+	option=std::find((char**)argv,end,(const std::string&)"-t"); //asigna manualmente la cantidad de hebras
 	if(option!=end) numThreads=atoi(*(option+1));
 
 	printf("threads: %d\n",numThreads);
-	hll = new HyperLogLog(p,32-p,k,numThreads,tam);
+	hll = new HyperLogLog(p,32-p,k,numThreads,tam+tam2);
 
 	//se trabaja a nivel de bits, es mas rapido que trabajar con strings
 	//aca se determina como se insertaran las bases complementarias en el complemento del reverso del kmer
@@ -193,12 +227,19 @@ int main(int argc, char *argv[]){
 				#pragma omp task
 				leer((char*)genomes[i].c_str(),i);
 			}
+			for(int i=0;i<tam2;i++){
+				#pragma omp task
+				hll->loadSketch((char*)compressed[i].c_str(),tam+i);
+			}
 		}
 	}
 	option=std::find((char**)argv,end,(const std::string&)"-s"); //guarda los sketches
 	if(option!=end) hll->saveSketches();
 	hll->estCard();
 	hll->estJaccard();
+	option=std::find((char**)argv,end,(const std::string&)"-o"); //guarda la matriz en txt
+	if(option!=end) hll->saveOutput(*(option+1));
+	else hll->printMatrix();
 	delete hll;
 	return 0;
 }
