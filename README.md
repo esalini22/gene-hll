@@ -1,8 +1,8 @@
 # gene-hll
-Implementación del algoritmo HyperLogLog en C++ para cálculo de similitud de genomas mediante índice de Jaccard.
+Implementación del algoritmo HyperLogLog en C++, con OpenMP e Instrinsics, para cálculo de similitud de genomas mediante índice de Jaccard.
 El algoritmo se basa en el siguiente [paper](https://storage.googleapis.com/pub-tools-public-publication-data/pdf/40671.pdf).
 
-Recibe como entrada dos archivos de genomas, y devuelve:
+Recibe como entrada múltiples archivos de genomas, y devuelve:
 - Las cardinalidades de cada genoma
 - El índice de Jaccard de cada par de genomas
 
@@ -25,7 +25,7 @@ Se ejecuta como *./hll -opcion valor genomas*, o bien *./hll genomas -opcion val
 
 Ejemplo:
 
-*./hll -p 22 genoma1 genoma 2*
+*./hll -p 22 genoma1 genoma 2 genoma3*
 *./hll -k 31 -f archivo*
 *./hll -s genoma1 genoma 2 genoma3 -k 32
 
