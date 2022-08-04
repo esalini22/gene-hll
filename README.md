@@ -17,8 +17,11 @@ Se ejecuta como *./hll -opcion valor genomas*, o bien *./hll genomas -opcion val
 - -p: Cambia el valor de los p bits. Mínimo: 7, máximo: 31. Por defecto es 22.
 - -k: Cambia el largo del kmer. Mínimo: 20, máximo: 31.  Por defecto es 31.
 - -f: Lee las rutas de los archivos de genomas desde un archivo de texto (1 ruta por linea).
-- -s: Guarda los sketches generados en un archivo de texto.
+- -s: Guarda los sketches generados en un archivo comprimido.
 - -t: Número de hebras  Por defecto es el mínimo entre el tamaño del input y la cantidad total máxima de hebras por CPU.
+- -d: Lee una ruta de un archivo comprimido, para precargar el sketch.
+- -r: Lee las rutas de los archivos comprimidos desde un archivo de texto (1 ruta por linea).
+- -o: Guarda el output (matriz de distancias) en un archivo de texto, y no lo imprime por pantalla.
 
 Ejemplo:
 
