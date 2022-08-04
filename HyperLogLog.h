@@ -11,6 +11,7 @@ class HyperLogLog{
         unsigned int bits_v2; //bits para hacer & en operacion bitwise
         long double N; //corresponde a |M|: numero de buckets - se usa long double para evitar hacer casting al calcular cardinalidad
         float a_m; //factor de correccion * N^2
+        int ciclos_red; //cantidad de ciclos de for de reduce vectorizado
         string kmer_length;
         string sketch_size;
         vector<ullint> bit_mask; //vector de máscaras de bits, usadas para insertar registros
