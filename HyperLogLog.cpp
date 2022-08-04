@@ -27,6 +27,7 @@ HyperLogLog::HyperLogLog(unsigned char n1, unsigned char n2,unsigned char k,int 
 	kmer_length=to_string((int)k);
 	sketch_size=to_string(p);
 	jaccards.resize(n);
+	ciclos_red=(b+2)/8+(((b+2)%8)>0);
 	for(int i=0;i<b+2;++i) wt.emplace_back((float)1/(float)(1<<i));
 }
 HyperLogLog::~HyperLogLog(){}
