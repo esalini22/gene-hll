@@ -165,7 +165,7 @@ int main(int argc, char *argv[]){
 		printf("No hay suficientes argumentos\n");
 		exit(1);
 	}
-	unsigned char p=22;
+	unsigned char p=12;
 	char** option;
 	char** end=argv+argc;
 	option=std::find((char**)argv,end,(const std::string&)"-k"); //cambia largo de kmer
