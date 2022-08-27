@@ -311,7 +311,8 @@ void HyperLogLog::estJaccard(){ //recibe numero de genomas
 			
 			float cardU=0;
 
-			vector<float> w2=wt;
+			vector<float> w2;
+			for(int i=0;i<b+2;++i) w2.emplace_back((float)1/(float)(1<<i));
 			__m256 vec,vec2;
 			for(int i=0;i<ciclos_red;++i){
 				vec=_mm256_loadu_ps((const float *)&wU[i*8]);
