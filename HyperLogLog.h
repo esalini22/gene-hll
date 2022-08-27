@@ -16,7 +16,6 @@ class HyperLogLog{
         string sketch_size;
         vector<ullint> bit_mask; //vector de máscaras de bits, usadas para insertar registros
         //se usa vector de ullint, cada celda (64 bits) a su vez tiene hasta 12 buckets
-        vector<float> wt; //denominador de frecuencias, 1/2^i
         vector<vector<ullint>> sketch; //n sketches, n: numero de genomas
         vector<string> names; //vector con los nombres de los genomas
         vector<float> cards; //cardinalidades individuales, para cálculo de jaccard
