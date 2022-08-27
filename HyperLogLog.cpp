@@ -28,7 +28,6 @@ HyperLogLog::HyperLogLog(unsigned char n1, unsigned char n2,unsigned char k,int 
 	sketch_size=to_string(p);
 	jaccards.resize(n);
 	ciclos_red=(b+2)/8+(((b+2)%8)>0);
-	for(int i=0;i<b+2;++i) wt.emplace_back((float)1/(float)(1<<i));
 }
 HyperLogLog::~HyperLogLog(){}
 
@@ -211,7 +210,8 @@ void HyperLogLog::estCard(){
 		//eliminamos las repeticiones por celda extra vacía creada (?)
 		w[0]-=12;
 		float card=0;
-		vector<float> w2=wt;
+		vector<float> w2;
+		for(int i=0;i<b+2;++i) w2.emplace_back((float)1/(float)(1<<i));
 		__m256 vec,vec2;
 		for(int i=0;i<ciclos_red;++i){
 			vec=_mm256_loadu_ps((const float *)&w[i*8]);
