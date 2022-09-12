@@ -8,7 +8,7 @@
 #include "wyhash32.h"
 
 using namespace std;
-#define seed 5 //seed para hash - CAMBIAR PARA VER COMO CAMBIA TIEMPO Y PRECISION
+#define seed 5 //seed para hash
 #define lim 4294967296 //2^32
 #define lim_int 2147483647
 
