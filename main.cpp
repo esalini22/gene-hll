@@ -8,16 +8,187 @@
 #include <thread>
 #include <vector>
 #include <algorithm>
+#include <vector>
+#include <immintrin.h> 
 #include "HyperLogLog.h"
+#define lim 4294967296 //2^32
+#define lim_int 2147483647
+
 using namespace std;
 typedef unsigned long long int ullint;
 
-HyperLogLog *hll;
 unsigned char k=31; //largo de kmer
 ullint bits_G;
 ullint bits_T;
 ullint bits_C;
 ullint BITS;
+
+inline float hsum_sse3(__m128 v) {
+    __m128 shuf = _mm_movehdup_ps(v);        // broadcast elements 3,1 to 2,0
+    __m128 maxs = _mm_add_ps(v, shuf);
+    shuf        = _mm_movehl_ps(shuf, maxs); // high half -> low half
+    maxs        = _mm_add_ss(maxs, shuf);
+    return        _mm_cvtss_f32(maxs);
+}
+
+inline float hsum_avx(__m256 v) {
+    __m128 lo = _mm256_castps256_ps128(v);   // low 128
+    __m128 hi = _mm256_extractf128_ps(v, 1); // high 128
+           lo = _mm_add_ps(lo, hi);          // max the low 128
+    return hsum_sse3(lo);                    // and inline the sse3 version
+}
+
+vector<vector<float>> estJaccard(vector<vector<ullint>> sketch, vector<float> cards,int b,int N, int numThreads){
+	omp_set_num_threads(numThreads);
+	__m256i vec3; //vector de mascaras de bits
+	ullint bits_and[4]={15,15,15,15};
+	vec3=_mm256_loadu_si256((const __m256i*)&bits_and[0]);
+
+	int a_m=(0.7213/(1+(1.079/N)))*N*N;
+	int ciclos_red=(b+2)/8+(((b+2)%8)>0);
+
+	int tam=sketch.size();
+	vector<vector<float>> jaccards(tam);
+
+	#pragma omp parallel for //no se puede usar collapse aqui
+	for(int j1=0;j1<tam;j1++){
+		vector<float> temp_jaccards; //para evitar false sharing
+		temp_jaccards.resize(tam-j1-1);
+		for(int j2=j1+1;j2<tam;j2++){
+			vector<ullint>::iterator it1=sketch[j1].begin();
+			vector<ullint>::iterator it2=sketch[j2].begin();
+			vector<ullint>::iterator fin=sketch[j1].end();
+			int ceros=N;
+			vector<float> wU(b+2,0);
+			//contamos las repeticiones de w en cada sketch
+			while(it1!=fin){ 
+				ullint i1=*it1,i2=*it2;
+
+				//solo funciona con avx 512, por lineas _mm256_max_epu64()
+				/*ullint it_array1[16]={i1,(i1>>4),(i1>>8),(i1>>12),(i1>>16),(i1>>20),(i1>>24),(i1>>28),(i1>>32),(i1>>36),(i1>>40),(i1>>44),(i1>>48),(i1>>52),(i1>>56),(i1>>60)};
+				ullint it_array2[16]={i2,(i2>>4),(i2>>8),(i2>>12),(i2>>16),(i2>>20),(i2>>24),(i2>>28),(i2>>32),(i2>>36),(i2>>40),(i2>>44),(i2>>48),(i2>>52),(i2>>56),(i2>>60)};
+				__m256i vec4[4],vec5[4];
+				vec4[0]=_mm256_loadu_si256((const __m256i*)&it_array1[0]);
+				vec4[1]=_mm256_loadu_si256((const __m256i*)&it_array1[4]);
+				vec4[2]=_mm256_loadu_si256((const __m256i*)&it_array1[8]);
+				vec4[3]=_mm256_loadu_si256((const __m256i*)&it_array1[12]);
+				vec4[0]=_mm256_and_si256(vec3,vec4[0]);
+				vec4[1]=_mm256_and_si256(vec3,vec4[1]);
+				vec4[2]=_mm256_and_si256(vec3,vec4[2]);
+				vec4[3]=_mm256_and_si256(vec3,vec4[3]);
+				vec5[0]=_mm256_loadu_si256((const __m256i*)&it_array2[0]);
+				vec5[1]=_mm256_loadu_si256((const __m256i*)&it_array2[4]);
+				vec5[2]=_mm256_loadu_si256((const __m256i*)&it_array2[8]);
+				vec5[3]=_mm256_loadu_si256((const __m256i*)&it_array2[12]);
+				vec5[0]=_mm256_and_si256(vec3,vec5[0]);
+				vec5[1]=_mm256_and_si256(vec3,vec5[1]);
+				vec5[2]=_mm256_and_si256(vec3,vec5[2]);
+				vec5[3]=_mm256_and_si256(vec3,vec5[3]);
+
+				vec4[0]=_mm256_max_epu64(vec4[0],vec5[0]);
+				vec4[1]=_mm256_max_epu64(vec4[1],vec5[1]);
+				vec4[2]=_mm256_max_epu64(vec4[2],vec5[2]);
+				vec4[3]=_mm256_max_epu64(vec4[2],vec5[3]);
+				__attribute__ ((aligned (32))) ullint out[4];
+				for(char c=0;c<4;++c){
+					_mm256_store_si256((__m256i *)&out[0],vec4[c]);
+					if(out[0]) ceros--;
+					wU[out[0]]++;
+					if(out[1]) ceros--;
+					wU[out[1]]++;
+					if(out[2]) ceros--;
+					wU[out[2]]++;
+					if(out[3]) ceros--;
+					wU[out[3]]++;
+				}*/
+
+				for(char i=0;i<16;++i){ //16 registros por celda
+					ullint temp1=i1&0xF,temp2=i2&0xF;
+					if(temp1||temp2) --ceros;
+					(temp1>temp2) ? wU[temp1]++ : wU[temp2]++;
+					i1=i1>>4;
+					i2=i2>>4;
+				}
+				++it1;
+				++it2; //avanza en tabla B
+			}
+			
+			float cardU=0;
+
+			vector<float> w2;
+			int respow=1;
+			for(int i=0;i<b+2;++i){
+				w2.emplace_back((float)1/(float)respow);
+				respow=respow<<1;
+			}
+
+			__m256 vec,vec2;
+			for(int i=0;i<ciclos_red;++i){
+				vec=_mm256_loadu_ps((const float *)&wU[i*8]);
+				vec2=_mm256_loadu_ps((const float *)&w2[i*8]);
+				vec=_mm256_mul_ps(vec,vec2);
+				cardU+=hsum_avx(vec);
+			}
+
+			//media armonica
+			cardU=(float)a_m/cardU;
+			if(ceros && cardU<=5*N/2) //C_HLL, ln cuando hay muchos ceros;
+				cardU=N*log(N/ceros);
+			else if(cardU>lim/30)
+				cardU=-lim*log(1-(cardU/lim));
+			//printf("estimacion cardinalidad %s U %s: %Lf\n",names[j1].c_str(),names[j2].c_str(),cardU);
+
+			float jaccard=(cards[j1]+cards[j2]-cardU)/cardU;
+			if(jaccard<0) jaccard=0;
+			temp_jaccards[j2-j1-1]=jaccard;
+		}
+		jaccards[j1]=temp_jaccards;
+	}
+	return jaccards;
+}
+
+void printMatrix(vector<vector<float>> jaccards, vector<string> names){
+	int tam=names.size();
+	//printf("	");
+	char guion='-';
+	for(int j=0;j<tam;j++)
+		printf("%3s ",names[j].c_str());
+	printf("\n");
+	for(int j1=0;j1<tam;j1++){
+		printf("%3s ",names[j1].c_str());
+		for(int j2=0;j2<tam;j2++){
+			if(j2<j1+1){
+				//printf("- ");
+				printf("%3c ",guion);
+				continue;
+			}
+			printf("%3f ",jaccards[j1][j2-j1-1]);
+		}
+		printf("\n");
+	}
+}
+
+void saveOutput(char* filename,vector<string> names, vector<vector<float>> jaccards){ //guarda la matriz en txt
+	int tam=names.size();
+	FILE *fp=fopen(filename,"w");
+	fprintf(fp,"	");
+	for(int j=0;j<tam;j++)
+		fprintf(fp,"%s ",names[j].c_str());
+	fprintf(fp,"\n");
+	for(int j1=0;j1<tam;j1++){
+		fprintf(fp,"%s ",names[j1].c_str());
+		for(int j2=0;j2<tam;j2++){
+			if(j2<j1+1){
+				fprintf(fp,"- ");
+				continue;
+			}
+			fprintf(fp,"%f ",jaccards[j1][j2-j1-1]);
+		}
+		fprintf(fp,"\n");
+	}
+	fclose(fp);
+}
+
 
 /*void to_kmer(unsigned long long int num,unsigned char k){
 	unsigned long long int temp=num;
@@ -35,7 +206,7 @@ ullint BITS;
 	printf("kmer: %s\n",kmer);
 }*/
 
-void leer(char *genome,int i){
+void leer(char *genome,HyperLogLog *hll){
 	char c; //para lectura
 	ullint kmer=0,comp=0;
 	string linea;
@@ -45,7 +216,7 @@ void leer(char *genome,int i){
 		exit(1);
 	}
 
-	hll->addSketch(genome,i); //añade el sketch inicializado con 0s
+	hll->addSketch(genome); //añade el sketch inicializado con 0s
 
 	getline(indata,linea); //salta primera linea
 	getline(indata,linea); //para primer kmer
@@ -70,7 +241,7 @@ void leer(char *genome,int i){
 		}
 		else if(c=='T') kmer=kmer|0x3; //T=11
 	}
-	(kmer>comp) ? hll->insert(comp,i) : hll->insert(kmer,i); //insert kmer canonico
+	(kmer>comp) ? hll->insert(comp) : hll->insert(kmer); //insert kmer canonico
 
 	while(!indata.eof()){
 		while(it!=linea.end()){
@@ -89,7 +260,7 @@ void leer(char *genome,int i){
 				}
 				else if(c=='T') kmer=kmer|0x3; //T=11
 
-				(kmer>comp) ? hll->insert(comp,i) : hll->insert(kmer,i); //insert kmer canonico
+				(kmer>comp) ? hll->insert(comp) : hll->insert(kmer); //insert kmer canonico
 			}
 			else if(c=='>') break;
 			++it;
@@ -203,7 +374,13 @@ int main(int argc, char *argv[]){
 	if(option!=end) numThreads=atoi(*(option+1));
 
 	printf("threads: %d\n",numThreads);
-	hll = new HyperLogLog(p,32-p,k,numThreads,tam+tam2);
+
+	vector<HyperLogLog> v_hll;
+	for(int i=0;i<tam+tam2;++i){
+		HyperLogLog *hll;
+		hll = new HyperLogLog(p,32-p,k);
+		v_hll.push_back(*hll);
+	}
 
 	//se trabaja a nivel de bits, es mas rapido que trabajar con strings
 	//aca se determina como se insertaran las bases complementarias en el complemento del reverso del kmer
@@ -223,21 +400,35 @@ int main(int argc, char *argv[]){
 		{
 			for(int i=0;i<tam;i++){
 				#pragma omp task
-				leer((char*)genomes[i].c_str(),i);
+				leer((char*)genomes[i].c_str(),&v_hll[i]);
 			}
 			for(int i=0;i<tam2;i++){
 				#pragma omp task
-				hll->loadSketch((char*)compressed[i].c_str(),tam+i);
+				v_hll[i+tam].loadSketch((char*)compressed[i].c_str());
 			}
 		}
 	}
+	
 	option=std::find((char**)argv,end,(const std::string&)"-s"); //guarda los sketches
-	if(option!=end) hll->saveSketches();
-	hll->estCard();
-	hll->estJaccard();
-	option=std::find((char**)argv,end,(const std::string&)"-o"); //guarda la matriz en txt
-	if(option!=end) hll->saveOutput(*(option+1));
-	else hll->printMatrix();
-	delete hll;
+	if(option!=end){
+		for(vector<HyperLogLog>::iterator it=v_hll.begin();it!=v_hll.end();++it) 
+			it->saveSketch();
+	}
+	vector<vector<ullint>> sketches(tam+tam2);
+	vector<string> names(tam+tam2);
+	vector<float> cards(tam+tam2);
+	#pragma omp parallel for
+	for(int i=0;i<tam+tam2;i++){
+		printf("%d\n",i);
+		sketches[i]=v_hll[i].getSketch();
+		names[i]=v_hll[i].getName();
+		cards[i]=v_hll[i].estCard();
+	}
+	vector<vector<float>> jaccards=estJaccard(sketches,cards,32-p,1<<p,numThreads);
+	//option=std::find((char**)argv,end,(const std::string&)"-o"); //guarda la matriz en txt
+	//if(option!=end) saveOutput(*(option+1));
+	//else 
+	printMatrix(jaccards,names);
+
 	return 0;
 }
