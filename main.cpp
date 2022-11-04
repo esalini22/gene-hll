@@ -38,7 +38,7 @@ inline float hsum_avx(__m256 v) {
     return hsum_sse3(lo);                    // and inline the sse3 version
 }
 
-vector<vector<float>> estJaccard(vector<vector<ullint>> sketch, vector<float> cards,int b,int N, int numThreads){
+vector<vector<float>> estJaccard(vector<HyperLogLog> &hll, vector<float> &cards,int b,int N, int numThreads){
 	omp_set_num_threads(numThreads);
 	__m256i vec3; //vector de mascaras de bits
 	ullint bits_and[4]={15,15,15,15};
@@ -47,7 +47,7 @@ vector<vector<float>> estJaccard(vector<vector<ullint>> sketch, vector<float> ca
 	int a_m=(0.7213/(1+(1.079/N)))*N*N;
 	int ciclos_red=(b+2)/8+(((b+2)%8)>0);
 
-	int tam=sketch.size();
+	int tam=hll.size();
 	vector<vector<float>> jaccards(tam);
 
 	#pragma omp parallel for //no se puede usar collapse aqui
@@ -55,10 +55,11 @@ vector<vector<float>> estJaccard(vector<vector<ullint>> sketch, vector<float> ca
 		vector<float> temp_jaccards; //para evitar false sharing
 		temp_jaccards.resize(tam-j1-1);
 		for(int j2=j1+1;j2<tam;j2++){
-			vector<ullint>::iterator it1=sketch[j1].begin();
-			vector<ullint>::iterator it2=sketch[j2].begin();
-			vector<ullint>::iterator fin=sketch[j1].end();
-			int ceros=N;
+			vector<ullint> s1ref=(hll[j1].getSketch());
+			vector<ullint> s2ref=(hll[j2].getSketch());
+			vector<ullint>::iterator it1=s1ref.begin();
+			vector<ullint>::iterator it2=s2ref.begin();
+			vector<ullint>::iterator fin=s1ref.end();
 			vector<float> wU(b+2,0);
 			//contamos las repeticiones de w en cada sketch
 			while(it1!=fin){ 
@@ -104,7 +105,6 @@ vector<vector<float>> estJaccard(vector<vector<ullint>> sketch, vector<float> ca
 
 				for(char i=0;i<16;++i){ //16 registros por celda
 					ullint temp1=i1&0xF,temp2=i2&0xF;
-					if(temp1||temp2) --ceros;
 					(temp1>temp2) ? wU[temp1]++ : wU[temp2]++;
 					i1=i1>>4;
 					i2=i2>>4;
@@ -130,13 +130,15 @@ vector<vector<float>> estJaccard(vector<vector<ullint>> sketch, vector<float> ca
 				cardU+=hsum_avx(vec);
 			}
 
+			int ceros = wU[0];
+
 			//media armonica
 			cardU=(float)a_m/cardU;
 			if(ceros && cardU<=5*N/2) //C_HLL, ln cuando hay muchos ceros;
 				cardU=N*log(N/ceros);
 			else if(cardU>lim/30)
 				cardU=-lim*log(1-(cardU/lim));
-			//printf("estimacion cardinalidad %s U %s: %Lf\n",names[j1].c_str(),names[j2].c_str(),cardU);
+			printf("estimacion cardinalidad union: %f\n",cardU);
 
 			float jaccard=(cards[j1]+cards[j2]-cardU)/cardU;
 			if(jaccard<0) jaccard=0;
@@ -147,7 +149,7 @@ vector<vector<float>> estJaccard(vector<vector<ullint>> sketch, vector<float> ca
 	return jaccards;
 }
 
-void printMatrix(vector<vector<float>> jaccards, vector<string> names){
+void printMatrix(vector<vector<float>> &jaccards, vector<string> names){
 	int tam=names.size();
 	//printf("	");
 	char guion='-';
@@ -414,21 +416,18 @@ int main(int argc, char *argv[]){
 		for(vector<HyperLogLog>::iterator it=v_hll.begin();it!=v_hll.end();++it) 
 			it->saveSketch();
 	}
-	vector<vector<ullint>> sketches(tam+tam2);
 	vector<string> names(tam+tam2);
 	vector<float> cards(tam+tam2);
 	#pragma omp parallel for
 	for(int i=0;i<tam+tam2;i++){
 		printf("%d\n",i);
-		sketches[i]=v_hll[i].getSketch();
 		names[i]=v_hll[i].getName();
 		cards[i]=v_hll[i].estCard();
 	}
-	vector<vector<float>> jaccards=estJaccard(sketches,cards,32-p,1<<p,numThreads);
-	//option=std::find((char**)argv,end,(const std::string&)"-o"); //guarda la matriz en txt
-	//if(option!=end) saveOutput(*(option+1));
-	//else 
-	printMatrix(jaccards,names);
+	vector<vector<float>> jaccards=estJaccard(v_hll,cards,32-p,1<<p,numThreads);
+	/*option=std::find((char**)argv,end,(const std::string&)"-o"); //guarda la matriz en txt
+	if(option!=end) saveOutput(*(option+1));
+	else */printMatrix(jaccards,names);
 
 	return 0;
 }
