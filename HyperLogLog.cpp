@@ -215,7 +215,7 @@ vector<ullint> HyperLogLog::merge(HyperLogLog *hll){ //hace la union y devuelve 
 	return ret;
 }
 
-vector<ullint> HyperLogLog::getSketch(){
+const vector<ullint> &HyperLogLog::getSketch(){
 	return sketch;
 }
 string HyperLogLog::getName(){
