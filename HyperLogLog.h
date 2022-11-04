@@ -28,7 +28,7 @@ class HyperLogLog{
         void saveSketch(); //guarda el sketch individual en un archivo, para funcion sketch
         float estCard(); //cardinalidad individual
         vector<ullint> merge(HyperLogLog *hll); //hace la union y devuelve un nuevo sketch
-        vector<ullint> getSketch();
+        const vector<ullint> &getSketch();
         string getName();
         //void saveOutput(char* filename); //guarda las cardinalidades y distancias en un txt
 };
