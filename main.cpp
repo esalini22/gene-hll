@@ -115,10 +115,11 @@ vector<vector<float>> estJaccard(vector<HyperLogLog> &hll, vector<float> &cards,
 			
 			float cardU=0;
 
-			vector<float> w2;
+			float w2[32];
+			for(int i=0;i<32;++i) w2[i]=0.0;
 			int respow=1;
 			for(int i=0;i<b+2;++i){
-				w2.emplace_back((float)1/(float)respow);
+				w2[i]=(float)1/(float)respow;
 				respow=respow<<1;
 			}
 
