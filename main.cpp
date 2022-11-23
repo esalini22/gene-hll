@@ -38,13 +38,13 @@ inline float hsum_avx(__m256 v) {
     return hsum_sse3(lo);                    // and inline the sse3 version
 }
 
-vector<vector<float>> estJaccard(vector<HyperLogLog> &hll, vector<float> &cards,int b,int N, int numThreads){
+vector<vector<float>> estJaccard(vector<HyperLogLog*> hll, vector<float> &cards,int b,int N, int numThreads){
 	omp_set_num_threads(numThreads);
 	__m256i vec3; //vector de mascaras de bits
 	ullint bits_and[4]={15,15,15,15};
-	vec3=_mm256_loadu_si256((const __m256i*)&bits_and[0]);
+	//vec3=_mm256_loadu_si256((const __m256i*)&bits_and[0]);
 
-	int a_m=(0.7213/(1+(1.079/N)))*N*N;
+	float a_m=(0.7213/(1+(1.079/N)))*N*N;
 	int ciclos_red=(b+2)/8+(((b+2)%8)>0);
 
 	int tam=hll.size();
@@ -55,12 +55,12 @@ vector<vector<float>> estJaccard(vector<HyperLogLog> &hll, vector<float> &cards,
 		vector<float> temp_jaccards; //para evitar false sharing
 		temp_jaccards.resize(tam-j1-1);
 		for(int j2=j1+1;j2<tam;j2++){
-			vector<ullint> s1ref=(hll[j1].getSketch());
-			vector<ullint> s2ref=(hll[j2].getSketch());
+			vector<ullint> s1ref=(hll[j1]->getSketch());
+			vector<ullint> s2ref=(hll[j2]->getSketch());
 			vector<ullint>::iterator it1=s1ref.begin();
 			vector<ullint>::iterator it2=s2ref.begin();
 			vector<ullint>::iterator fin=s1ref.end();
-			vector<float> wU(b+2,0);
+			vector<float> wU(32,0.0);
 			//contamos las repeticiones de w en cada sketch
 			while(it1!=fin){ 
 				ullint i1=*it1,i2=*it2;
@@ -113,22 +113,29 @@ vector<vector<float>> estJaccard(vector<HyperLogLog> &hll, vector<float> &cards,
 				++it2; //avanza en tabla B
 			}
 			
-			float cardU=0;
+			float cardU=0.0;
+
+			//for(unsigned char i=0;i<b+2;++i)
+			//	if(wU[i]) cardU+=(float)wU[i]/(float)(1<<i);
 
 			float w2[32];
-			for(int i=0;i<32;++i) w2[i]=0.0;
+			for(int i=0;i<32;++i) w2[i]=1.0;
 			int respow=1;
 			for(int i=0;i<b+2;++i){
-				w2[i]=(float)1/(float)respow;
+				w2[i]=(float)respow;
 				respow=respow<<1;
+			}
+			for(int i=0;i<32;++i){
+				printf("%d. %f %f\n",i,wU[i],w2[i]);
 			}
 
 			__m256 vec,vec2;
 			for(int i=0;i<ciclos_red;++i){
 				vec=_mm256_loadu_ps((const float *)&wU[i*8]);
 				vec2=_mm256_loadu_ps((const float *)&w2[i*8]);
-				vec=_mm256_mul_ps(vec,vec2);
+				vec=_mm256_div_ps(vec,vec2);
 				cardU+=hsum_avx(vec);
+				printf("sum: %f\n",hsum_avx(vec));
 			}
 
 			int ceros = wU[0];
@@ -139,7 +146,7 @@ vector<vector<float>> estJaccard(vector<HyperLogLog> &hll, vector<float> &cards,
 				cardU=N*log(N/ceros);
 			else if(cardU>lim/30)
 				cardU=-lim*log(1-(cardU/lim));
-			printf("estimacion cardinalidad union: %f\n",cardU);
+			printf("estimacion cardinalidad union: %f ceros: %d\n",cardU,ceros);
 
 			float jaccard=(cards[j1]+cards[j2]-cardU)/cardU;
 			if(jaccard<0) jaccard=0;
@@ -378,11 +385,11 @@ int main(int argc, char *argv[]){
 
 	printf("threads: %d\n",numThreads);
 
-	vector<HyperLogLog> v_hll;
+	vector<HyperLogLog*> v_hll;
 	for(int i=0;i<tam+tam2;++i){
 		HyperLogLog *hll;
 		hll = new HyperLogLog(p,32-p,k);
-		v_hll.push_back(*hll);
+		v_hll.push_back(hll);
 	}
 
 	//se trabaja a nivel de bits, es mas rapido que trabajar con strings
@@ -403,32 +410,37 @@ int main(int argc, char *argv[]){
 		{
 			for(int i=0;i<tam;i++){
 				#pragma omp task
-				leer((char*)genomes[i].c_str(),&v_hll[i]);
+				leer((char*)genomes[i].c_str(),v_hll[i]);
 			}
 			for(int i=0;i<tam2;i++){
 				#pragma omp task
-				v_hll[i+tam].loadSketch((char*)compressed[i].c_str());
+				v_hll[i+tam]->loadSketch((char*)compressed[i].c_str());
 			}
 		}
 	}
 	
 	option=std::find((char**)argv,end,(const std::string&)"-s"); //guarda los sketches
 	if(option!=end){
-		for(vector<HyperLogLog>::iterator it=v_hll.begin();it!=v_hll.end();++it) 
-			it->saveSketch();
+		for(int i=0;i<tam+tam2;++i)
+			v_hll[i]->saveSketch();
 	}
 	vector<string> names(tam+tam2);
 	vector<float> cards(tam+tam2);
 	#pragma omp parallel for
 	for(int i=0;i<tam+tam2;i++){
-		printf("%d\n",i);
-		names[i]=v_hll[i].getName();
-		cards[i]=v_hll[i].estCard();
+		//printf("%d\n",i);
+		names[i]=v_hll[i]->getName();
+		cards[i]=v_hll[i]->estCard();
+		printf("getcard\n");
 	}
+	printf("jaccard\n");
 	vector<vector<float>> jaccards=estJaccard(v_hll,cards,32-p,1<<p,numThreads);
 	/*option=std::find((char**)argv,end,(const std::string&)"-o"); //guarda la matriz en txt
 	if(option!=end) saveOutput(*(option+1));
 	else */printMatrix(jaccards,names);
+
+	for(int i=0;i<tam+tam2;++i)
+		delete v_hll[i];
 
 	return 0;
 }
