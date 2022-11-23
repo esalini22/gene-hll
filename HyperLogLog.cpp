@@ -32,12 +32,12 @@ HyperLogLog::HyperLogLog(unsigned char n1, unsigned char n2,unsigned char k){
 	b=n2;
 	bits_v2=(1<<b)-1; //2^b -1
 	N=1<<p; //2^V1
-	//a_m=(0.7213/(1+(1.079/N)))*N*N;
+	a_m=(0.7213/(1+(1.079/N)))*N*N;
 	for(unsigned char i=0;i<16;++i)
 		bit_mask.emplace_back(~((ullint)0xF<<(4*i)));
 	kmer_length=to_string((int)k);
 	sketch_size=to_string(p);
-	//ciclos_red=(b+2)/8+(((b+2)%8)>0);
+	ciclos_red=(b+2)/8+(((b+2)%8)>0);
 	min_val=1<<(b-15);
 }
 HyperLogLog::~HyperLogLog(){}
@@ -46,8 +46,8 @@ void HyperLogLog::addSketch(string genome){
 	//inicializa sketch en 0s, y añade su nombre a un vector
 	for(unsigned int j=0;j<N/16;++j) //cada celda tendra 12 buckets del sketch array
 		sketch.emplace_back(0);
-	if((long)N%16)
-		sketch.emplace_back(0);
+	//if((long)N%16)
+		//sketch.emplace_back(0);
 	name=genome;
 	printf("%s\n",name.c_str());
 }
@@ -61,6 +61,7 @@ void HyperLogLog::insert(ullint kmer){
 	unsigned int v2=hash&bits_v2; // AND 2^b -1 
 	if(v2<min_val) v2=15;
 	else v2=__builtin_clz(v2)+1-p; //cuenta cantidad de bits 0 mas significativo
+	//if(v2>15) v2=15;
 	//lo cual sirve para encontrar posicion de 1 mas a la izquierda
 	//se resta p, ya que al trabajar con int, se tiene 32 bits,
 	//y siempre habran al menos p ceros a la izquierda
@@ -132,14 +133,10 @@ void HyperLogLog::saveSketch(){ //usar zlib para comprimir
 
 float HyperLogLog::estCard(){ //cardinalidad individual
 	__m256i vec3; //vector de mascaras de bits
-	ullint bits_and[4]={15,15,15,15};
-	//vec3=_mm256_loadu_epi64((void const *)&bits_and[0]);
+	ullint bits_and[4]={0xF,0xF,0xF,0xF};
 	vec3=_mm256_loadu_si256((const __m256i*)&bits_and[0]);
 
-	int a_m=(0.7213/(1+(1.079/N)))*N*N;
-	int ciclos_red=(b+2)/8+(((b+2)%8)>0);
-
-	vector<float> w(b+2,0);
+	vector<float> w(32,0.0);
 	vector<ullint>::iterator it1=sketch.begin();
 	vector<ullint>::iterator fin=sketch.end();
 	//contamos las repeticiones de w en cada sketch
@@ -159,33 +156,41 @@ float HyperLogLog::estCard(){ //cardinalidad individual
 		__attribute__ ((aligned (32))) ullint out[4];
 		for(int c=0;c<4;++c){
 			_mm256_store_si256((__m256i *)&out[0],vec4[c]);
-			//if(out[0]) ceros--;
 			w[out[0]]++;
-			//if(out[1]) ceros--;
 			w[out[1]]++;
-			//if(out[2]) ceros--;
 			w[out[2]]++;
-			//if(out[3]) ceros--;
 			w[out[3]]++;
 		}
-		
 		++it1;
 	}
-	float card=0;
+	/*while(it1!=fin){ 
+		ullint i1=*it1;
+		for(char i=0;i<16;++i){ //12 registros por celda
+			ullint temp1=i1&0xF;
+			w[temp1]++;
+			i1=i1>>4;
+		}
+		++it1;
+	}*/
+	float card=0.0;
+	//for(unsigned char i=0;i<b+2;++i)
+	//	if(w[i]) card+=(float)w[i]/(float)(1<<i);
 	float w2[32];
-	for(int i=0;i<32;++i) w2[i]=0.0;
+	for(int i=0;i<32;++i) w2[i]=1.0;
 	int respow=1;
 	for(int i=0;i<b+2;++i){
-		w2[i]=(float)1/(float)respow;
+		w2[i]=(float)respow;
 		respow=respow<<1;
 	}
 	__m256 vec,vec2;
 	for(int i=0;i<ciclos_red;++i){
 		vec=_mm256_loadu_ps((const float *)&w[i*8]);
 		vec2=_mm256_loadu_ps((const float *)&w2[i*8]);
-		vec=_mm256_mul_ps(vec,vec2);
+		vec=_mm256_div_ps(vec,vec2);
 		card+=hsum_avx(vec);
+		printf("sum: %f\n",hsum_avx(vec));
 	}
+
 	//media armonica
 	card=(float)a_m/card;
 	int ceros = w[0];
@@ -193,7 +198,7 @@ float HyperLogLog::estCard(){ //cardinalidad individual
 		card=N*log(N/ceros);
 	else if(card>lim/30)
 		card=-lim*log(1-(card/lim));
-	printf("estimacion cardinalidad %s: %f\n",name.c_str(),card);
+	printf("estimacion cardinalidad %s: %f ceros: %d\n",name.c_str(),card,ceros);
 	return card;
 }
 vector<ullint> HyperLogLog::merge(HyperLogLog *hll){ //hace la union y devuelve un nuevo sketch
