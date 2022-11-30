@@ -347,41 +347,37 @@ int main(int argc, char *argv[]){
 		exit(1);
 	}
 	unsigned char p=12;
+	
 	char** option;
 	char** end=argv+argc;
-	option=std::find((char**)argv,end,(const std::string&)"-k"); //cambia largo de kmer
+	option=std::find((char**)argv,end,(const std::string&)"-k");
 	if(option!=end){
 		char val=atoi(*(option+1));
 		if(val<32 && val>19) k=val;
 	}
-	option=std::find((char**)argv,end,(const std::string&)"-p"); //cambia tamaño de sketch
+	option=std::find((char**)argv,end,(const std::string&)"-p");
 	if(option!=end){
 		char val=atoi(*(option+1));
-		if(val<32 && val>8) p=val;
+		if(val<16 && val>8) p=val;
 	}
+	
 	vector<string> genomes,compressed;
-	option=std::find((char**)argv,end,(const std::string&)"-f"); //lee de txt
-	if(option!=end) genomes=readFromFile(*(option+1));
+	option=std::find((char**)argv,end,(const std::string&)"-f");
+	if(option!=end) genomes=readFromFile((char*)(*(option+1)));
 	else genomes=getPaths(argv,argc);
 
-	option=std::find((char**)argv,end,(const std::string&)"-r"); //lee de txt
-	if(option!=end) compressed=readCompressedFromFile(*(option+1));
+	option=std::find((char**)argv,end,(const std::string&)"-r");
+	if(option!=end) compressed=readCompressedFromFile((char*)(*(option+1)));
 	else compressed=getCompressed(argv,argc);
 
 	int tam=genomes.size(),tam2=compressed.size();
 	printf("tam: %d, tam2: %d\n",tam,tam2);
-
-	for(vector<string>::iterator it=genomes.begin();it!=genomes.end();++it)
-		printf("%s ",(char*)(*it).c_str());
-
-	printf("\nk: %d p: %d\n",k,p);
+	printf("k: %d p: %d\n",k,p);
 	
-
 	int numThreads=min(tam+tam2,(int)std::thread::hardware_concurrency());
-	printf("numThreads: %d, tam: %d, maxThreads: %d\n",numThreads,tam+tam2,(int)std::thread::hardware_concurrency());
 
-	option=std::find((char**)argv,end,(const std::string&)"-t"); //asigna manualmente la cantidad de hebras
-	if(option!=end) numThreads=atoi(*(option+1));
+	option=std::find((char**)argv,end,(const std::string&)"-t");
+	if(option!=end) numThreads=atoi((*(option+1)));
 
 	printf("threads: %d\n",numThreads);
 
@@ -419,23 +415,21 @@ int main(int argc, char *argv[]){
 		}
 	}
 	
-	option=std::find((char**)argv,end,(const std::string&)"-s"); //guarda los sketches
+	option=std::find((char**)argv,end,(const std::string&)"-s");
 	if(option!=end){
 		for(int i=0;i<tam+tam2;++i)
 			v_hll[i]->saveSketch();
 	}
+
 	vector<string> names(tam+tam2);
 	vector<float> cards(tam+tam2);
 	#pragma omp parallel for
 	for(int i=0;i<tam+tam2;i++){
-		//printf("%d\n",i);
 		names[i]=v_hll[i]->getName();
 		cards[i]=v_hll[i]->estCard();
-		printf("getcard\n");
 	}
-	printf("jaccard\n");
 	vector<vector<float>> jaccards=estJaccard(v_hll,cards,32-p,1<<p,numThreads);
-	/*option=std::find((char**)argv,end,(const std::string&)"-o"); //guarda la matriz en txt
+	/*option=std::find((char**)argv,end,(const std::string&)"-o");
 	if(option!=end) saveOutput(*(option+1));
 	else */printMatrix(jaccards,names);
 
